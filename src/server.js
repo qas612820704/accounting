@@ -4,7 +4,7 @@ import { Schema } from './models';
 
 const app = express();
 
-app.use('/graphql', graphqlHttp({
+app.use('/____graphql', graphqlHttp({
   schema: Schema,
   graphiql: true
 }));

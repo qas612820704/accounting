@@ -26,8 +26,29 @@ export const type = /* GraphQL */`
       email: Email!
       password: String!
     ): Auth
+
+    sign(
+      name: String!
+      email: Email!
+      password: String!
+    ): Auth
   }
 `;
+
+const login = async (root, { email, password }) => {
+  const Auth = await authPromise;
+  const me = await Auth.findOne({ email });
+
+  if (me === null) throw `user: ${email} not founded`;
+
+  if (checkValidPwd(me, password)) throw 'Wrong password';
+
+  const preparedMe = prepare(me);
+
+  preparedMe.token = jwt.sign(preparedMe, '!!!!SECRET!!!!');
+
+  return preparedMe;
+};
 
 export const resolvers = {
   Query: {
@@ -36,17 +57,20 @@ export const resolvers = {
     },
   },
   Mutation: {
-    login: async (root, { email, password }) => {
+    login,
+
+    sign: async (root, { name, email, password }) => {
       const Auth = await authPromise;
-      const me = await Auth.findOne({ email });
 
-      if (checkValidPwd(me, password)) throw 'Wrong password';
+      if (await Auth.findOne({ email })) throw 'user already exists';
 
-      const preparedMe = prepare(me);
+      const auth = await Auth.insertOne({
+        name,
+        email,
+        password: createHash('sha256').update(password).digest('hex'),
+      });
 
-      preparedMe.token = jwt.sign(preparedMe, '!!!!SECRET!!!!');
-
-      return preparedMe;
+      return prepare(auth.ops[0]);
     }
   }
 }
